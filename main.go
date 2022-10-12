@@ -1,24 +1,34 @@
 package main
 
 import (
+	"context"
 	"flag"
 	tgClient "iden69/read-adviser-bot/clients/telegram"
 	event_consumer "iden69/read-adviser-bot/consumer/event-consumer"
 	"iden69/read-adviser-bot/events/telegram"
-	"iden69/read-adviser-bot/storage/files"
+	"iden69/read-adviser-bot/storage/sqlite"
 	"log"
 )
 
 const (
-	tgBotHost   = "api.telegram.org"
-	storagePath = "files_storage"
-	batchSize   = 100
+	tgBotHost         = "api.telegram.org"
+	filesStoragePath  = "files_storage"
+	sqliteStoragePath = "data/sqlite/storage.db"
+	batchSize         = 100
 )
 
 func main() {
 	t := mustToken()
 	tgClient := tgClient.New(tgBotHost, t)
-	storage := files.New(storagePath)
+	// storage := files.New(storagePath)
+	storage, err := sqlite.New(sqliteStoragePath)
+	if err != nil {
+		log.Fatalf("can't connect to storage: ", err)
+	}
+
+	if err := storage.Init(context.TODO()); err != nil {
+		log.Fatalf("can't init storage: ", err)
+	}
 
 	eventsProcessor := telegram.New(tgClient, storage)
 
